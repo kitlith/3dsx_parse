@@ -30,7 +30,6 @@ struct extheader {
 struct relocation_header {
     u32 absolute;
     u32 relative;
-    char rest[];
 };
 
 #pragma pack(1)
@@ -66,10 +65,31 @@ int main(int argc, char *argv[]) {
     if (result != 0) goto close;
     struct header *head = (struct header*)buffer;
 
-    printf("Size: 0x%04x\nRelocation Header Size: 0x%04x\nVersion: 0x%08x\nFlags: 0x%08x\n",
+    if (head->format_ver != 0) puts("WARNING: This may be a newer version of the format! Use information at your own risk!");
+    printf("Size: 0x%04x\nRelocation Header Size: 0x%04x\nVersion: 0x%08lx\nFlags: 0x%08lx\n",
         head->header_size, head->relocation_header_size, head->format_ver, head->flags);
-    printf("Code Size: 0x%08x\nROData Size: 0x%08x\nData Size: 0x%08x\nBSS Size: 0x%08x\n",
+    printf("Code Size: 0x%08lx\nROData Size: 0x%08lx\nData Size: 0x%08lx\nBSS Size: 0x%08lx\n",
         head->code_size, head->rodata_size, head->data_size, head->bss_size);
+
+    if (head->header_size > 0x20) {
+        struct extheader *ext = (struct extheader*)(head->rest);
+        printf("SMDH offset: 0x%08lx\nSMDH size: 0x%08lx\nRomFS offset: 0x%08lx\n",
+            ext->smdh_offset, ext->smdh_size, ext->romfs_offset);
+    }
+
+    const char *reloc_strings[3] = {
+        "Code",
+        "ROData",
+        "Data"
+    };
+
+    for (int iii = 0; iii < 3; ++iii) {
+        // There are 3 reloaction headers, starting at an offset of the header_size.
+        // This is going to descend into a madness of pointer magic, isn't it?
+        struct relocation_header *reloc = (struct reloaction_header*)(buffer + head->header_size + (8 * iii));
+        printf("%s reloaction header\nAbsolute: 0x%08lx\nRelative: 0x%08lx\n",
+            reloc_strings[iii], reloc->absolute, reloc->relative);
+    }
 
     close:
     fclose(file);
