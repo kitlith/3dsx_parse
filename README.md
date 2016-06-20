@@ -1,4 +1,4 @@
-* 3dsx file parser for the 3ds
+# 3dsx file parser for the 3ds
 
 ... Yup, that's as dumb as it sounds. Isn't even very good.
 
